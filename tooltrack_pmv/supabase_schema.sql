@@ -1,8 +1,3 @@
--- ══════════════════════════════════════════════════════════════
--- ToolTrack PMV — Schema SQL
--- Pegar en Supabase → SQL Editor → Run
--- ══════════════════════════════════════════════════════════════
-
 -- 1. USUARIOS (actores del sistema)
 create table if not exists usuarios (
   id         uuid primary key default gen_random_uuid(),
