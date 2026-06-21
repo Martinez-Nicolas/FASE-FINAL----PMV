@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useApp } from '../../context/AppContext'
-import { getSolicitudesPendientesEntrega, getSolicitudesActivasParaBodeguero } from '../../lib/db'
+import { getSolicitudesPendientesEntrega, getSolicitudesActivasParaBodeguero, checkYAnularAbandonadas } from '../../lib/db'
 import NavBar from '../../components/NavBar'
 import Badge from '../../components/Badge'
 import Spinner from '../../components/Spinner'
@@ -14,11 +14,13 @@ export default function DashboardBodeguero() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([
-      getSolicitudesPendientesEntrega(),
-      getSolicitudesActivasParaBodeguero(),
-    ]).then(([e, r]) => { setEntregas(e); setRecepciones(r) })
-      .finally(() => setLoading(false))
+    checkYAnularAbandonadas(4).then(() => {
+      Promise.all([
+        getSolicitudesPendientesEntrega(),
+        getSolicitudesActivasParaBodeguero(),
+      ]).then(([e, r]) => { setEntregas(e); setRecepciones(r) })
+        .finally(() => setLoading(false))
+    })
   }, [])
 
   return (

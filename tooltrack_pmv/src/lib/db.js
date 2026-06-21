@@ -220,6 +220,81 @@ export async function emitirVeredicto(incidenciaId, herramientaId, solicitudId, 
     .update({ estado: 'cerrada', updated_at: new Date() }).eq('id', solicitudId)
 }
 
+// ── HISTORIAL / TRAZABILIDAD (Supervisor) ─────────────────────
+export async function getHistorialCompleto({ desde, hasta, operarioId, herramientaId, estado } = {}) {
+  let query = supabase
+    .from('solicitudes')
+    .select(`*, herramientas(*), operario:operario_id(nombre, cuadrilla), supervisor:supervisor_id(nombre),
+              custodias(*, bodeguero:bodeguero_id(nombre)),
+              incidencias(*)`)
+    .order('created_at', { ascending: false })
+
+  if (desde)         query = query.gte('created_at', desde)
+  if (hasta)          query = query.lte('created_at', hasta)
+  if (operarioId)     query = query.eq('operario_id', operarioId)
+  if (herramientaId)  query = query.eq('herramienta_id', herramientaId)
+  if (estado)         query = query.eq('estado', estado)
+
+  const { data, error } = await query
+  if (error) throw error
+  return data
+}
+
+export async function getEstadisticasSupervisor() {
+  const { data: solicitudes, error } = await supabase
+    .from('solicitudes')
+    .select('estado, operario_id, operario:operario_id(nombre)')
+  if (error) throw error
+
+  const total       = solicitudes.length
+  const cerradas    = solicitudes.filter(s => s.estado === 'cerrada').length
+  const rechazadas  = solicitudes.filter(s => s.estado === 'rechazada').length
+  const incidencias = solicitudes.filter(s => s.estado === 'en_revision').length
+  const atrasos     = solicitudes.filter(s => s.estado === 'atrasada').length
+
+  // Ranking de atrasos por operario
+  const porOperario = {}
+  solicitudes.forEach(s => {
+    const nombre = s.operario?.nombre || 'Desconocido'
+    if (!porOperario[nombre]) porOperario[nombre] = { total: 0, atrasos: 0 }
+    porOperario[nombre].total++
+    if (s.estado === 'atrasada') porOperario[nombre].atrasos++
+  })
+
+  return { total, cerradas, rechazadas, incidencias, atrasos, porOperario }
+}
+
+// ── INVENTARIO (Supervisor + Bodeguero) ───────────────────────
+export async function getInventarioCompleto() {
+  const { data, error } = await supabase
+    .from('herramientas')
+    .select('*')
+    .order('nombre')
+  if (error) throw error
+  return data
+}
+
+export async function getInventarioConUltimoMovimiento() {
+  const herramientas = await getInventarioCompleto()
+  const { data: solicitudes } = await supabase
+    .from('solicitudes')
+    .select('herramienta_id, estado, fecha_devolucion, operario:operario_id(nombre)')
+    .order('created_at', { ascending: false })
+
+  return herramientas.map(h => {
+    const ultima = solicitudes?.find(s => s.herramienta_id === h.id)
+    return { ...h, ultimaSolicitud: ultima || null }
+  })
+}
+
+// ── AUTENTICACIÓN SIMPLE POR PIN ───────────────────────────────
+export async function verificarPin(usuarioId, pin) {
+  const { data, error } = await supabase
+    .from('usuarios').select('pin').eq('id', usuarioId).single()
+  if (error) throw error
+  return data.pin === pin
+}
+
 // ── HELPERS ───────────────────────────────────────────────────
 export function isAtrasada(sol) {
   if (sol.estado !== 'activa') return false
@@ -236,5 +311,26 @@ export async function checkYMarcarAtrasadas() {
     await supabase.from('solicitudes')
       .update({ estado: 'atrasada', updated_at: new Date() })
       .in('id', atrasadas)
+  }
+}
+
+// ── ANULACIÓN AUTOMÁTICA POR ABANDONO (Ajuste 1, Avance 3) ────
+export async function checkYAnularAbandonadas(horasLimite = 4) {
+  const limite = new Date(Date.now() - horasLimite * 60 * 60 * 1000)
+  const { data } = await supabase
+    .from('solicitudes')
+    .select('id, created_at, herramienta_id')
+    .eq('estado', 'pendiente_entrega')
+    .lt('created_at', limite.toISOString())
+  if (!data || data.length === 0) return
+
+  const ids = data.map(s => s.id)
+  await supabase.from('solicitudes')
+    .update({ estado: 'anulada', updated_at: new Date() })
+    .in('id', ids)
+
+  // Liberar las herramientas reservadas
+  for (const sol of data) {
+    await updateHerramientaEstado(sol.herramienta_id, 'disponible')
   }
 }

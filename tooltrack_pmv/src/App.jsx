@@ -8,6 +8,8 @@ import Devolucion           from './pages/operario/Devolucion'
 import ReporteIncidencia    from './pages/operario/ReporteIncidencia'
 import DashboardSupervisor  from './pages/supervisor/DashboardSupervisor'
 import AprobarSolicitud     from './pages/supervisor/AprobarSolicitud'
+import Historial            from './pages/supervisor/Historial'
+import Inventario           from './pages/supervisor/Inventario'
 import DashboardBodeguero   from './pages/bodeguero/DashboardBodeguero'
 import Entregar             from './pages/bodeguero/Entregar'
 import DashboardMantencion  from './pages/mantencion/DashboardMantencion'
@@ -29,6 +31,8 @@ const SCREENS = {
   incidencia_creada:     IncidenciaCreada,
   dashboard_supervisor:  DashboardSupervisor,
   aprobar_solicitud:     AprobarSolicitud,
+  historial:             Historial,
+  inventario:            Inventario,
   solicitud_aprobada:    SolicitudAprobada,
   solicitud_rechazada:   SolicitudRechazada,
   dashboard_bodeguero:   DashboardBodeguero,

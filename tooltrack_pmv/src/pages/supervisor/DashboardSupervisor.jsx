@@ -41,6 +41,17 @@ export default function DashboardSupervisor() {
           ))}
         </div>
 
+        <div className="flex gap-2 mb-5">
+          <button onClick={() => go('historial')}
+            className="flex-1 flex items-center justify-center gap-2 bg-white border border-stone-200 rounded-xl py-2.5 text-xs font-medium text-stone-600 hover:border-stone-300 hover:bg-stone-50 transition-all">
+            📊 Historial y Trazabilidad
+          </button>
+          <button onClick={() => go('inventario')}
+            className="flex-1 flex items-center justify-center gap-2 bg-white border border-stone-200 rounded-xl py-2.5 text-xs font-medium text-stone-600 hover:border-stone-300 hover:bg-stone-50 transition-all">
+            📦 Inventario
+          </button>
+        </div>
+
         {pendientes.length > 0 && (
           <div className="alert bg-amber-50 text-amber-700 border-amber-200">
             ⚠ Tienes {pendientes.length} solicitud(es) esperando tu revisión.
