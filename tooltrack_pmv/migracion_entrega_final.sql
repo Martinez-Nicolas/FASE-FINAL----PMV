@@ -1,9 +1,3 @@
--- ══════════════════════════════════════════════════════════════
--- ToolTrack PMV — Migración para Entrega Final
--- Pegar en Supabase → SQL Editor → Run
--- (Es seguro ejecutar esto aunque ya hayas corrido el schema original)
--- ══════════════════════════════════════════════════════════════
-
 -- 1. Agregar columna PIN para autenticación simple
 alter table usuarios add column if not exists pin text;
 
